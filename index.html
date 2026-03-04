@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>주식 수익률 계산기</title>
+  <meta name="description" content="한국 주식과 미국 주식의 매수가/매도가를 입력하여 수익률을 계산하는 도구입니다. 미국 주식은 원화 및 달러 기준 결과를 동시에 확인할 수 있습니다." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-from: #0a0e1a;
+      --bg-to: #131028;
+      --accent: #7c3aed;
+      --accent2: #a855f7;
+      --accent3: #06b6d4;
+      --glass: rgba(255,255,255,0.04);
+      --glass-border: rgba(255,255,255,0.08);
+      --glass-hover: rgba(255,255,255,0.07);
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --gain: #10b981;
+      --loss: #ef4444;
+      --input-bg: rgba(255,255,255,0.06);
+      --card: rgba(255,255,255,0.03);
+      --shadow: 0 25px 60px rgba(0,0,0,0.5);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, var(--bg-from) 0%, #0f0a1e 40%, #0d1524 100%);
+      min-height: 100vh;
+      color: var(--text);
+      padding: 24px 16px 60px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Ambient glow orbs */
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::before {
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(124,58,237,0.15) 0%, transparent 70%);
+      top: -200px; left: -200px;
+    }
+    body::after {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(6,182,212,0.1) 0%, transparent 70%);
+      bottom: -150px; right: -150px;
+    }
+
+    .container {
+      max-width: 780px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      animation: fadeDown 0.6s ease both;
+    }
+
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg, rgba(124,58,237,0.2), rgba(6,182,212,0.15));
+      border: 1px solid rgba(124,58,237,0.3);
+      border-radius: 100px;
+      padding: 6px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent2);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: clamp(28px, 5vw, 44px);
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff 0%, #c4b5fd 50%, #67e8f9 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.2;
+      margin-bottom: 10px;
+    }
+
+    .header-sub {
+      color: var(--text-muted);
+      font-size: 15px;
+      font-weight: 400;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 6px;
+      margin-bottom: 28px;
+      animation: fadeUp 0.6s ease 0.1s both;
+      backdrop-filter: blur(20px);
+    }
+
+    .tab-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 13px 20px;
+      border: none;
+      border-radius: 11px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      color: var(--text-muted);
+      background: transparent;
+      letter-spacing: 0.01em;
+    }
+
+    .tab-btn .flag { font-size: 20px; }
+
+    .tab-btn.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(124,58,237,0.4), 0 0 40px rgba(124,58,237,0.15);
+      transform: translateY(-1px);
+    }
+
+    .tab-btn:not(.active):hover {
+      background: var(--glass-hover);
+      color: var(--text);
+    }
+
+    /* Card */
+    .card {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 32px;
+      backdrop-filter: blur(24px);
+      box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,0.05);
+      animation: fadeUp 0.6s ease 0.2s both;
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Section label */
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent2);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--glass-border), transparent);
+    }
+
+    /* Form grid */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .form-grid.triple { grid-template-columns: 1fr 1fr 1fr; }
+    .form-grid.full { grid-template-columns: 1fr; }
+
+    @media (max-width: 560px) {
+      .form-grid, .form-grid.triple { grid-template-columns: 1fr; }
+      .card { padding: 20px; }
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .field label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+    }
+
+    .field label .unit {
+      font-weight: 400;
+      opacity: 0.7;
+      margin-left: 4px;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    .input-wrap .prefix {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 13px 14px 13px 14px;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text);
+      outline: none;
+      transition: all 0.25s ease;
+      -moz-appearance: textfield;
+    }
+
+    input[type="number"].has-prefix { padding-left: 30px; }
+
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+    input[type="number"]:focus {
+      border-color: var(--accent2);
+      background: rgba(124,58,237,0.08);
+      box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
+    }
+
+    input[type="number"]::placeholder { color: rgba(148,163,184,0.4); }
+
+    /* Divider with label */
+    .divider-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent3);
+      margin: 24px 0 16px;
+    }
+    .divider-label::before, .divider-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(6,182,212,0.3), transparent);
+    }
+
+    /* Calc Button */
+    .btn-calc {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 50%, #9333ea 100%);
+      background-size: 200% 200%;
+      border: none;
+      border-radius: 14px;
+      font-family: 'Inter', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      letter-spacing: 0.02em;
+      position: relative;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .btn-calc::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .btn-calc:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(124,58,237,0.5);
+    }
+
+    .btn-calc:hover::before { opacity: 1; }
+    .btn-calc:active { transform: translateY(0); }
+
+    /* Result Section */
+    .result-section {
+      margin-top: 32px;
+      animation: fadeUp 0.4s ease both;
+    }
+
+    .result-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .result-title .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    /* Result Table */
+    .result-table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 16px;
+    }
+
+    .result-table thead tr {
+      background: linear-gradient(135deg, rgba(124,58,237,0.2), rgba(168,85,247,0.15));
+    }
+
+    .result-table thead th {
+      padding: 13px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent2);
+      text-align: left;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .result-table tbody tr {
+      border-bottom: 1px solid rgba(255,255,255,0.035);
+      transition: background 0.2s ease;
+    }
+
+    .result-table tbody tr:last-child { border-bottom: none; }
+    .result-table tbody tr:hover { background: rgba(255,255,255,0.03); }
+
+    .result-table tbody td {
+      padding: 13px 16px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .result-table tbody td:first-child {
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .result-table tbody td:last-child {
+      font-weight: 600;
+      color: var(--text);
+      text-align: right;
+    }
+
+    .result-table-wrap {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .table-header-bar {
+      padding: 12px 16px;
+      background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(6,182,212,0.08));
+      border-bottom: 1px solid var(--glass-border);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.04em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .table-header-bar .ticon { font-size: 16px; }
+
+    /* Highlight row */
+    .highlight-row td {
+      background: rgba(255,255,255,0.025) !important;
+    }
+
+    .gain-text { color: var(--gain) !important; }
+    .loss-text { color: var(--loss) !important; }
+
+    /* Big rate display */
+    .rate-hero {
+      text-align: center;
+      padding: 28px 20px;
+      background: linear-gradient(135deg, rgba(16,185,129,0.06), rgba(16,185,129,0.02));
+      border: 1px solid rgba(16,185,129,0.15);
+      border-radius: 20px;
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .rate-hero.loss {
+      background: linear-gradient(135deg, rgba(239,68,68,0.06), rgba(239,68,68,0.02));
+      border-color: rgba(239,68,68,0.15);
+    }
+
+    .rate-hero::before {
+      content: '';
+      position: absolute;
+      top: -40%;
+      left: -20%;
+      width: 140%;
+      height: 140%;
+      background: radial-gradient(ellipse, rgba(16,185,129,0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .rate-hero.loss::before {
+      background: radial-gradient(ellipse, rgba(239,68,68,0.07) 0%, transparent 70%);
+    }
+
+    .rate-hero-label {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .rate-hero-value {
+      font-size: clamp(36px, 7vw, 52px);
+      font-weight: 800;
+      line-height: 1;
+      color: var(--gain);
+      letter-spacing: -0.02em;
+    }
+
+    .rate-hero.loss .rate-hero-value { color: var(--loss); }
+
+    .rate-hero-sub {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    /* US rate combined display */
+    .rate-combined {
+      font-size: clamp(20px, 4vw, 28px);
+      font-weight: 800;
+      text-align: center;
+      padding: 22px 16px;
+      border-radius: 16px;
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }
+
+    .rate-combined .krw-rate { display: block; }
+    .rate-combined .usd-rate {
+      font-size: 0.58em;
+      opacity: 0.75;
+      font-weight: 600;
+    }
+
+    .hidden { display: none !important; }
+
+    /* Alert box */
+    .alert {
+      padding: 14px 18px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #fbbf24;
+      background: rgba(251,191,36,0.08);
+      border: 1px solid rgba(251,191,36,0.2);
+      margin-top: 16px;
+    }
+
+    /* Animations */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      margin-top: 48px;
+      color: var(--text-muted);
+      font-size: 13px;
+      opacity: 0.6;
+      position: relative;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="header-badge">📈 Stock Calculator</div>
+      <h1>주식 수익률 계산기</h1>
+      <p class="header-sub">매수가와 매도가를 입력하여 수익률을 계산하세요</p>
+    </header>
+
+    <!-- Tabs -->
+    <div class="tabs" role="tablist">
+      <button class="tab-btn active" role="tab" aria-selected="true" id="tab-kr" onclick="switchTab('kr')">
+        <span class="flag">🇰🇷</span> 한국 주식
+      </button>
+      <button class="tab-btn" role="tab" aria-selected="false" id="tab-us" onclick="switchTab('us')">
+        <span class="flag">🇺🇸</span> 미국 주식
+      </button>
+    </div>
+
+    <!-- Card -->
+    <div class="card">
+
+      <!-- ======================== KOREAN STOCK PANEL ======================== -->
+      <div class="tab-panel active" id="panel-kr">
+        <div class="section-label">거래 정보 입력</div>
+
+        <div class="form-grid">
+          <div class="field">
+            <label for="kr-buy">매수가 <span class="unit">(원)</span></label>
+            <div class="input-wrap">
+              <input type="number" id="kr-buy" placeholder="0" min="0" oninput="clearKrResult()" />
+            </div>
+          </div>
+          <div class="field">
+            <label for="kr-sell">매도가 <span class="unit">(원)</span></label>
+            <div class="input-wrap">
+              <input type="number" id="kr-sell" placeholder="0" min="0" oninput="clearKrResult()" />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-grid full">
+          <div class="field">
+            <label for="kr-qty">수량 <span class="unit">(주)</span></label>
+            <input type="number" id="kr-qty" placeholder="1" min="1" value="1" oninput="clearKrResult()" />
+          </div>
+        </div>
+
+        <button class="btn-calc" onclick="calcKr()">💰 수익률 계산하기</button>
+
+        <!-- Korean Result -->
+        <div id="kr-result" class="result-section hidden">
+          <div id="kr-rate-hero" class="rate-hero">
+            <div class="rate-hero-label">총 수익률</div>
+            <div class="rate-hero-value" id="kr-rate-val">—</div>
+            <div class="rate-hero-sub" id="kr-profit-sub">—</div>
+          </div>
+
+          <div class="result-title"><span class="dot"></span> 계산 결과</div>
+          <div class="result-table-wrap">
+            <div class="table-header-bar"><span class="ticon">🇰🇷</span> 원화 기준 결과</div>
+            <table class="result-table">
+              <thead>
+                <tr>
+                  <th>항목</th>
+                  <th>금액 (원)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>매수 총액</td><td id="kr-total-buy">—</td></tr>
+                <tr><td>매도 총액</td><td id="kr-total-sell">—</td></tr>
+                <tr class="highlight-row"><td>수익금</td><td id="kr-profit">—</td></tr>
+                <tr class="highlight-row"><td>수익률</td><td id="kr-rate">—</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="kr-alert" class="alert hidden">⚠️ 모든 값을 올바르게 입력해주세요.</div>
+      </div>
+
+      <!-- ======================== US STOCK PANEL ======================== -->
+      <div class="tab-panel" id="panel-us">
+        <div class="section-label">거래 정보 입력</div>
+
+        <div class="form-grid">
+          <div class="field">
+            <label for="us-buy-price">매수가 <span class="unit">($)</span></label>
+            <div class="input-wrap">
+              <span class="prefix">$</span>
+              <input type="number" class="has-prefix" id="us-buy-price" placeholder="0.00" min="0" step="0.01" oninput="clearUsResult()" />
+            </div>
+          </div>
+          <div class="field">
+            <label for="us-sell-price">매도가 <span class="unit">($)</span></label>
+            <div class="input-wrap">
+              <span class="prefix">$</span>
+              <input type="number" class="has-prefix" id="us-sell-price" placeholder="0.00" min="0" step="0.01" oninput="clearUsResult()" />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-grid full">
+          <div class="field">
+            <label for="us-qty">수량 <span class="unit">(주)</span></label>
+            <input type="number" id="us-qty" placeholder="1" min="1" value="1" oninput="clearUsResult()" />
+          </div>
+        </div>
+
+        <div class="divider-label">환율 정보</div>
+
+        <div class="form-grid">
+          <div class="field">
+            <label for="us-buy-rate">매수 시 환율 <span class="unit">(원/$)</span></label>
+            <div class="input-wrap">
+              <input type="number" id="us-buy-rate" placeholder="예: 1350" min="0" step="0.01" oninput="clearUsResult()" />
+            </div>
+          </div>
+          <div class="field">
+            <label for="us-sell-rate">매도 시 환율 <span class="unit">(원/$)</span></label>
+            <div class="input-wrap">
+              <input type="number" id="us-sell-rate" placeholder="예: 1320" min="0" step="0.01" oninput="clearUsResult()" />
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-calc" onclick="calcUs()">💰 수익률 계산하기</button>
+
+        <!-- US Result -->
+        <div id="us-result" class="result-section hidden">
+          <!-- Combined rate display -->
+          <div id="us-rate-hero" class="rate-hero">
+            <div class="rate-hero-label">총 수익률</div>
+            <div class="rate-hero-value" id="us-rate-krw-val">—</div>
+            <div class="rate-hero-sub" id="us-rate-sub">—</div>
+          </div>
+
+          <div class="result-title"><span class="dot"></span> 계산 결과</div>
+
+          <!-- KRW Table -->
+          <div class="result-table-wrap">
+            <div class="table-header-bar"><span class="ticon">🇰🇷</span> 원화 기준 결과</div>
+            <table class="result-table">
+              <thead>
+                <tr>
+                  <th>항목</th>
+                  <th>금액 (원)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>매수 총액</td><td id="us-krw-buy">—</td></tr>
+                <tr><td>매도 총액</td><td id="us-krw-sell">—</td></tr>
+                <tr class="highlight-row"><td>수익금</td><td id="us-krw-profit">—</td></tr>
+                <tr class="highlight-row"><td>수익률</td><td id="us-krw-rate">—</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- USD Table -->
+          <div class="result-table-wrap">
+            <div class="table-header-bar"><span class="ticon">🇺🇸</span> 달러 기준 결과</div>
+            <table class="result-table">
+              <thead>
+                <tr>
+                  <th>항목</th>
+                  <th>금액 ($)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>매수 총액</td><td id="us-usd-buy">—</td></tr>
+                <tr><td>매도 총액</td><td id="us-usd-sell">—</td></tr>
+                <tr class="highlight-row"><td>수익금</td><td id="us-usd-profit">—</td></tr>
+                <tr class="highlight-row"><td>수익률</td><td id="us-usd-rate">—</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="us-alert" class="alert hidden">⚠️ 모든 값을 올바르게 입력해주세요.</div>
+      </div>
+
+    </div><!-- .card -->
+
+    <footer class="footer">
+      <p>📊 한국 주식 · 미국 주식 수익률 계산기 &nbsp;·&nbsp; 세금 및 수수료는 포함되지 않습니다</p>
+    </footer>
+  </div>
+
+  <script>
+    /* ────────────────── Tab switching ────────────────── */
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-selected', 'false');
+      });
+      document.getElementById('panel-' + tab).classList.add('active');
+      const btn = document.getElementById('tab-' + tab);
+      btn.classList.add('active');
+      btn.setAttribute('aria-selected', 'true');
+    }
+
+    /* ────────────────── Helpers ────────────────── */
+    function fmtKRW(n) {
+      const abs = Math.abs(n);
+      let str;
+      if (abs >= 1e8) {
+        str = (n / 1e8).toFixed(2) + '억원';
+        // also show full number
+        str += ' (' + n.toLocaleString('ko-KR') + '원)';
+      } else {
+        str = n.toLocaleString('ko-KR') + '원';
+      }
+      return str;
+    }
+
+    function fmtUSD(n) {
+      return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function fmtRate(n) {
+      const sign = n >= 0 ? '+' : '';
+      return sign + n.toFixed(2) + '%';
+    }
+
+    function colorClass(n) { return n >= 0 ? 'gain-text' : 'loss-text'; }
+
+    function setText(id, text, cls) {
+      const el = document.getElementById(id);
+      el.textContent = text;
+      el.className = cls || '';
+    }
+
+    /* ────────────────── Korean Stock ────────────────── */
+    function clearKrResult() {
+      document.getElementById('kr-result').classList.add('hidden');
+      document.getElementById('kr-alert').classList.add('hidden');
+    }
+
+    function calcKr() {
+      const buy  = parseFloat(document.getElementById('kr-buy').value);
+      const sell = parseFloat(document.getElementById('kr-sell').value);
+      const qty  = parseFloat(document.getElementById('kr-qty').value);
+
+      const alertEl = document.getElementById('kr-alert');
+      if (!buy || !sell || !qty || buy <= 0 || sell <= 0 || qty <= 0) {
+        alertEl.classList.remove('hidden');
+        document.getElementById('kr-result').classList.add('hidden');
+        return;
+      }
+      alertEl.classList.add('hidden');
+
+      const totalBuy  = buy * qty;
+      const totalSell = sell * qty;
+      const profit    = totalSell - totalBuy;
+      const rate      = ((sell - buy) / buy) * 100;
+      const isGain    = profit >= 0;
+      const cls       = colorClass(profit);
+
+      // Hero
+      const hero = document.getElementById('kr-rate-hero');
+      hero.className = 'rate-hero' + (isGain ? '' : ' loss');
+      setText('kr-rate-val', fmtRate(rate), cls);
+      setText('kr-profit-sub', (isGain ? '수익 ' : '손실 ') + fmtKRW(Math.abs(profit)));
+
+      // Table
+      setText('kr-total-buy',  fmtKRW(totalBuy));
+      setText('kr-total-sell', fmtKRW(totalSell));
+      setText('kr-profit',     (isGain ? '+' : '') + fmtKRW(profit), cls);
+      setText('kr-rate',       fmtRate(rate), cls);
+
+      document.getElementById('kr-result').classList.remove('hidden');
+    }
+
+    /* ────────────────── US Stock ────────────────── */
+    function clearUsResult() {
+      document.getElementById('us-result').classList.add('hidden');
+      document.getElementById('us-alert').classList.add('hidden');
+    }
+
+    function calcUs() {
+      const buyPrice  = parseFloat(document.getElementById('us-buy-price').value);
+      const sellPrice = parseFloat(document.getElementById('us-sell-price').value);
+      const qty       = parseFloat(document.getElementById('us-qty').value);
+      const buyRate   = parseFloat(document.getElementById('us-buy-rate').value);
+      const sellRate  = parseFloat(document.getElementById('us-sell-rate').value);
+
+      const alertEl = document.getElementById('us-alert');
+      if (!buyPrice || !sellPrice || !qty || !buyRate || !sellRate
+          || buyPrice <= 0 || sellPrice <= 0 || qty <= 0 || buyRate <= 0 || sellRate <= 0) {
+        alertEl.classList.remove('hidden');
+        document.getElementById('us-result').classList.add('hidden');
+        return;
+      }
+      alertEl.classList.add('hidden');
+
+      // ── Dollar basis ──
+      const usdTotalBuy  = buyPrice * qty;
+      const usdTotalSell = sellPrice * qty;
+      const usdProfit    = usdTotalSell - usdTotalBuy;
+      const usdRate      = ((sellPrice - buyPrice) / buyPrice) * 100;
+
+      // ── KRW basis (using respective exchange rates) ──
+      const krwTotalBuy  = usdTotalBuy  * buyRate;
+      const krwTotalSell = usdTotalSell * sellRate;
+      const krwProfit    = krwTotalSell - krwTotalBuy;
+      const krwRate      = (krwProfit / krwTotalBuy) * 100;
+
+      const isKrwGain = krwProfit >= 0;
+      const isUsdGain = usdProfit >= 0;
+      const krwCls    = colorClass(krwProfit);
+      const usdCls    = colorClass(usdProfit);
+
+      // Hero — show KRW rate primary, USD rate secondary
+      const hero = document.getElementById('us-rate-hero');
+      hero.className = 'rate-hero' + (isKrwGain ? '' : ' loss');
+      setText('us-rate-krw-val', fmtRate(krwRate), krwCls);
+      setText('us-rate-sub',
+        `원화기준 ${isKrwGain ? '수익 ' : '손실 '}${fmtKRW(Math.abs(krwProfit))} · 달러기준 ${fmtRate(usdRate)} (${isUsdGain ? '수익 ' : '손실 '}${fmtUSD(Math.abs(usdProfit))})`,
+        ''
+      );
+
+      // KRW table
+      setText('us-krw-buy',    fmtKRW(krwTotalBuy));
+      setText('us-krw-sell',   fmtKRW(krwTotalSell));
+      setText('us-krw-profit', (isKrwGain ? '+' : '') + fmtKRW(krwProfit), krwCls);
+      setText('us-krw-rate',
+        fmtRate(krwRate) + ' 원화(' + fmtRate(usdRate) + ' 달러)', krwCls);
+
+      // USD table
+      setText('us-usd-buy',    fmtUSD(usdTotalBuy));
+      setText('us-usd-sell',   fmtUSD(usdTotalSell));
+      setText('us-usd-profit', (isUsdGain ? '+' : '') + fmtUSD(usdProfit), usdCls);
+      setText('us-usd-rate',   fmtRate(usdRate), usdCls);
+
+      document.getElementById('us-result').classList.remove('hidden');
+    }
+
+    /* Allow Enter key to trigger calculation */
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        const activePanel = document.querySelector('.tab-panel.active');
+        if (activePanel.id === 'panel-kr') calcKr();
+        else calcUs();
+      }
+    });
+  </script>
+</body>
+</html>
