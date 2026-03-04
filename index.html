@@ -275,7 +275,8 @@
             pointer-events: none;
         }
 
-        input[type="number"] {
+        input[type="number"],
+        input[type="text"] {
             width: 100%;
             background: var(--input-bg);
             border: 1px solid var(--glass-border);
@@ -290,7 +291,8 @@
             -moz-appearance: textfield;
         }
 
-        input[type="number"].has-prefix {
+        input[type="number"].has-prefix,
+        input[type="text"].has-prefix {
             padding-left: 30px;
         }
 
@@ -299,7 +301,8 @@
             -webkit-appearance: none;
         }
 
-        input[type="number"]:focus {
+        input[type="number"]:focus,
+        input[type="text"]:focus {
             border-color: var(--accent2);
             background: rgba(124, 58, 237, 0.08);
             box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
@@ -651,7 +654,7 @@
             <div class="tab-panel active" id="panel-kr">
                 <div class="section-label">거래 정보 입력</div>
 
-                <div class="form-grid">
+                <div class="form-grid triple">
                     <div class="field">
                         <label for="kr-buy">매수가 <span class="unit">(원)</span></label>
                         <div class="input-wrap">
@@ -666,9 +669,6 @@
                                 oninput="fmtCommaInput(this); clearKrResult()" autocomplete="off" />
                         </div>
                     </div>
-                </div>
-
-                <div class="form-grid full">
                     <div class="field">
                         <label for="kr-qty">수량 <span class="unit">(주)</span></label>
                         <input type="number" id="kr-qty" placeholder="1" min="1" value="1" oninput="clearKrResult()" />
