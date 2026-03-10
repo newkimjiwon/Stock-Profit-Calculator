@@ -729,16 +729,16 @@
                         <label for="us-buy-price">매수가 <span class="unit">($)</span></label>
                         <div class="input-wrap">
                             <span class="prefix">$</span>
-                            <input type="number" class="has-prefix" id="us-buy-price" placeholder="0.00" min="0"
-                                step="0.01" oninput="clearUsResult()" />
+                            <input type="text" class="has-prefix" id="us-buy-price" placeholder="0.00"
+                                inputmode="decimal" oninput="fmtCommaInput(this); clearUsResult()" autocomplete="off" />
                         </div>
                     </div>
                     <div class="field">
                         <label for="us-sell-price">매도가 <span class="unit">($)</span></label>
                         <div class="input-wrap">
                             <span class="prefix">$</span>
-                            <input type="number" class="has-prefix" id="us-sell-price" placeholder="0.00" min="0"
-                                step="0.01" oninput="clearUsResult()" />
+                            <input type="text" class="has-prefix" id="us-sell-price" placeholder="0.00"
+                                inputmode="decimal" oninput="fmtCommaInput(this); clearUsResult()" autocomplete="off" />
                         </div>
                     </div>
                 </div>
@@ -756,15 +756,15 @@
                     <div class="field">
                         <label for="us-buy-rate">매수 시 환율 <span class="unit">(원/$)</span></label>
                         <div class="input-wrap">
-                            <input type="number" id="us-buy-rate" placeholder="예: 1350" min="0" step="0.01"
-                                oninput="clearUsResult()" />
+                            <input type="text" id="us-buy-rate" placeholder="예: 1350" inputmode="decimal"
+                                oninput="fmtCommaInput(this); clearUsResult()" autocomplete="off" />
                         </div>
                     </div>
                     <div class="field">
                         <label for="us-sell-rate">매도 시 환율 <span class="unit">(원/$)</span></label>
                         <div class="input-wrap">
-                            <input type="number" id="us-sell-rate" placeholder="예: 1320" min="0" step="0.01"
-                                oninput="clearUsResult()" />
+                            <input type="text" id="us-sell-rate" placeholder="예: 1320" inputmode="decimal"
+                                oninput="fmtCommaInput(this); clearUsResult()" autocomplete="off" />
                         </div>
                     </div>
                 </div>
@@ -908,13 +908,34 @@
         function fmtCommaInput(el) {
             const pos = el.selectionStart;
             const oldLen = el.value.length;
-            const raw = el.value.replace(/[^0-9]/g, '');
+
+            // Allow numbers and decimal point
+            let raw = el.value.replace(/[^0-9.]/g, '');
+
+            // Prevent multiple dots
+            const dotIndex = raw.indexOf('.');
+            if (dotIndex !== -1) {
+                raw = raw.slice(0, dotIndex + 1) + raw.slice(dotIndex + 1).replace(/\./g, '');
+            }
+
             if (raw === '') { el.value = ''; return; }
-            const formatted = Number(raw).toLocaleString('ko-KR');
+
+            let formatted = '';
+            if (raw.includes('.')) {
+                const parts = raw.split('.');
+                const intPart = parts[0] === '' ? '0' : Number(parts[0]).toLocaleString('ko-KR');
+                formatted = intPart + '.' + parts[1];
+            } else {
+                formatted = Number(raw).toLocaleString('ko-KR');
+            }
+
             el.value = formatted;
+
             // adjust cursor
             const diff = formatted.length - oldLen;
-            el.setSelectionRange(pos + diff, pos + diff);
+            let newPos = pos + diff;
+            if (newPos < 0) newPos = 0;
+            el.setSelectionRange(newPos, newPos);
         }
 
         function parseCommaNum(id) {
