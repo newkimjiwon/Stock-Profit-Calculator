@@ -990,11 +990,11 @@
         }
 
         function calcUs() {
-            const buyPrice = parseFloat(document.getElementById('us-buy-price').value);
-            const sellPrice = parseFloat(document.getElementById('us-sell-price').value);
+            const buyPrice = parseCommaNum('us-buy-price');
+            const sellPrice = parseCommaNum('us-sell-price');
             const qty = parseFloat(document.getElementById('us-qty').value);
-            const buyRate = parseFloat(document.getElementById('us-buy-rate').value);
-            const sellRate = parseFloat(document.getElementById('us-sell-rate').value);
+            const buyRate = parseCommaNum('us-buy-rate');
+            const sellRate = parseCommaNum('us-sell-rate');
 
             const alertEl = document.getElementById('us-alert');
             if (!buyPrice || !sellPrice || !qty || !buyRate || !sellRate
