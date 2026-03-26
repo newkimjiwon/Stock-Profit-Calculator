@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>주식 통합 툴 대시보드</title>
+    <meta name="description" content="평단가 계산기, 배당금 계산기, 복리 계산기, 포트폴리오 관리" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg-from: #0a0e1a;
+            --bg-to: #131028;
+            --accent: #7c3aed;
+            --accent2: #a855f7;
+            --accent3: #06b6d4;
+            --glass: rgba(255, 255, 255, 0.04);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-hover: rgba(255, 255, 255, 0.07);
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --gain: #10b981;
+            --loss: #ef4444;
+            --input-bg: rgba(255, 255, 255, 0.06);
+            --card: rgba(255, 255, 255, 0.03);
+            --shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+            
+            --sidebar-width: 250px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-from) 0%, #0f0a1e 40%, #0d1524 100%);
+            min-height: 100vh;
+            color: var(--text);
+            display: flex;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Ambient glow orbs */
+        body::before, body::after {
+            content: '';
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::before {
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(124, 58, 237, 0.15) 0%, transparent 70%);
+            top: -200px; left: -200px;
+        }
+
+        body::after {
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(6, 182, 212, 0.1) 0%, transparent 70%);
+            bottom: -150px; right: -150px;
+        }
+
+        /* Layout */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: rgba(10, 14, 26, 0.6);
+            backdrop-filter: blur(24px);
+            border-right: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            padding: 32px 20px;
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            z-index: 10;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            padding: 40px;
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+        }
+
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .sidebar {
+                position: relative;
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--glass-border);
+                padding: 20px;
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 20px;
+            }
+        }
+
+        /* Sidebar UI */
+        .logo {
+            font-size: 20px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff 0%, #c4b5fd 50%, #67e8f9 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            margin-bottom: 40px;
+            letter-spacing: -0.02em;
+        }
+
+        .nav {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: transparent;
+            border: 1px solid transparent;
+            text-align: left;
+        }
+
+        .nav-btn:hover {
+            background: var(--glass-hover);
+            color: var(--text);
+        }
+
+        .nav-btn.active {
+            background: rgba(124, 58, 237, 0.15);
+            border-color: rgba(124, 58, 237, 0.3);
+            color: #fff;
+            box-shadow: inset 0 0 20px rgba(124, 58, 237, 0.1);
+        }
+        
+        .nav-btn .icon {
+            font-size: 18px;
+            margin-right: 12px;
+            opacity: 0.8;
+        }
+
+        .back-link {
+            margin-top: auto;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-muted);
+            text-decoration: none;
+            padding: 12px;
+            border-radius: 8px;
+            display: block;
+            transition: all 0.2s ease;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+        }
+        .back-link:hover { background: var(--glass-hover); color: var(--text); }
+
+        /* Panels */
+        .panel { display: none; max-width: 800px; margin: 0 auto; animation: fadeUp 0.4s ease both;}
+        .panel.active { display: block; }
+
+        .panel-header { margin-bottom: 32px; }
+        .panel-title { font-size: 32px; font-weight: 800; margin-bottom: 8px; color: #fff; }
+        .panel-sub { color: var(--text-muted); font-size: 15px; }
+
+        .card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 32px;
+            backdrop-filter: blur(24px);
+            box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            margin-bottom: 24px;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Form Controls */
+        .section-label {
+            font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+            color: var(--accent2); margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
+        }
+        .section-label::after {
+            content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--glass-border), transparent);
+        }
+
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+        .field { display: flex; flex-direction: column; gap: 8px; }
+        .field label { font-size: 12px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.04em; }
+        .field label .unit { font-weight: 400; opacity: 0.7; margin-left: 4px; }
+        
+        input[type="text"], input[type="number"] {
+            width: 100%; background: var(--input-bg); border: 1px solid var(--glass-border);
+            border-radius: 12px; padding: 13px 14px; font-family: 'Inter', sans-serif;
+            font-size: 15px; font-weight: 500; color: var(--text); outline: none; transition: all 0.25s ease;
+            appearance: none; -moz-appearance: textfield;
+        }
+        input:focus { border-color: var(--accent2); background: rgba(124, 58, 237, 0.08); box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15); }
+
+        .btn-calc {
+            width: 100%; padding: 16px; background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 50%, #9333ea 100%);
+            background-size: 200% 200%; border: none; border-radius: 14px; font-family: 'Inter', sans-serif;
+            font-size: 16px; font-weight: 700; color: #fff; cursor: pointer; transition: all 0.3s ease; position: relative; overflow: hidden;
+        }
+        .btn-calc:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(124, 58, 237, 0.5); }
+        .btn-calc:active { transform: translateY(0); }
+
+        /* Results Display */
+        .hidden { display: none !important; }
+        .result-section { margin-top: 32px; animation: fadeUp 0.4s ease both; }
+        
+        .hero-metric {
+            text-align: center; padding: 28px 20px; background: rgba(255,255,255,0.02);
+            border: 1px solid var(--glass-border); border-radius: 20px; margin-bottom: 24px;
+        }
+        .hero-label { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 8px; }
+        .hero-value { font-size: clamp(32px, 5vw, 44px); font-weight: 800; color: var(--text); line-height: 1.1; }
+        .hero-sub { font-size: 14px; font-weight: 500; color: var(--text-muted); margin-top: 12px; }
+        
+        .hero-value.gain { color: var(--gain); }
+        .hero-value.loss { color: var(--loss); }
+
+        .result-table { width: 100%; border-collapse: collapse; border-radius: 16px; overflow: hidden; background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); }
+        .result-table thead tr { background: linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(168, 85, 247, 0.1)); }
+        .result-table th { padding: 13px 16px; font-size: 11px; font-weight: 700; color: var(--accent2); text-align: left; }
+        .result-table td { padding: 13px 16px; font-size: 14px; color: var(--text); border-bottom: 1px solid rgba(255,255,255,0.035); }
+        .result-table td:last-child { text-align: right; font-weight: 600; }
+        .result-table tr:last-child td { border-bottom: none; }
+        .highlight-row td { background: rgba(255,255,255,0.025); }
+        
+        .alert { padding: 14px 18px; border-radius: 12px; font-size: 13px; font-weight: 500; color: #fbbf24; background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.2); margin-top: 16px; }
+
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo">Stock Tools</div>
+        <nav class="nav">
+            <button class="nav-btn active" onclick="navTo('avg')"><span class="icon">⚖️</span>평단가 계산기</button>
+            <button class="nav-btn" onclick="navTo('div')"><span class="icon">💰</span>배당금 계산기</button>
+            <button class="nav-btn" onclick="navTo('comp')"><span class="icon">📈</span>복리/적립식 계산기</button>
+            <button class="nav-btn" onclick="navTo('port')"><span class="icon">🥧</span>포트폴리오 비중</button>
+        </nav>
+        <a href="index.html" class="back-link">← 수익률 계산기 홈으로</a>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        
+        <!-- ======================= 1. 평단가 계산기 ======================= -->
+        <section id="panel-avg" class="panel active">
+            <div class="panel-header">
+                <h1 class="panel-title">평단가(물타기) 계산기</h1>
+                <p class="panel-sub">추가 매수 시 최종 평균 단가와 손익이 어떻게 변하는지 확인하세요.</p>
+            </div>
+            
+            <div class="card">
+                <div class="section-label">기존 보유 주식</div>
+                <div class="form-grid">
+                    <div class="field">
+                        <label>현재 평균 단가 <span class="unit">(원)</span></label>
+                        <input type="text" id="avg-curr-price" placeholder="0" oninput="fmtComma(this)" />
+                    </div>
+                    <div class="field">
+                        <label>보유 수량 <span class="unit">(주)</span></label>
+                        <input type="text" id="avg-curr-qty" placeholder="0" oninput="fmtComma(this)" />
+                    </div>
+                </div>
+
+                <div class="section-label">추가 매수 주식</div>
+                <div class="form-grid">
+                    <div class="field">
+                        <label>추가 매수 단가 <span class="unit">(원)</span></label>
+                        <input type="text" id="avg-new-price" placeholder="0" oninput="fmtComma(this)" />
+                    </div>
+                    <div class="field">
+                        <label>추가 매수 수량 <span class="unit">(주)</span></label>
+                        <input type="text" id="avg-new-qty" placeholder="0" oninput="fmtComma(this)" />
+                    </div>
+                </div>
+                
+                <button class="btn-calc" onclick="calcAvg()">평단가 계산하기</button>
+                <div id="avg-alert" class="alert hidden">입력값을 정확히 확인해주세요.</div>
+                
+                <div id="avg-result" class="result-section hidden">
+                    <div class="hero-metric">
+                        <div class="hero-label">최종 예상 평균 단가</div>
+                        <div class="hero-value" id="avg-final-price">—</div>
+                        <div class="hero-sub" id="avg-diff-label">—</div>
+                    </div>
+                    
+                    <table class="result-table">
+                        <thead>
+                            <tr>
+                                <th>항목</th>
+                                <th>결과</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>총 보유 금액 (투자원금)</td>
+                                <td id="avg-total-invest">—</td>
+                            </tr>
+                            <tr>
+                                <td>총 보유 수량</td>
+                                <td id="avg-total-qty">—</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ======================= 2. 배당금 계산기 ======================= -->
+        <section id="panel-div" class="panel">
+            <div class="panel-header">
+                <h1 class="panel-title">배당금 계산기</h1>
+                <p class="panel-sub">투자 원금과 배당률을 입력하여 연간/월간 배당금을 확인하세요.</p>
+            </div>
+            
+            <div class="card">
+                <div class="section-label">투자 정보 입력</div>
+                <div class="form-grid">
+                    <div class="field">
+                        <label>총 투자 원금 <span class="unit">(원)</span></label>
+                        <input type="text" id="div-principal" placeholder="0" oninput="fmtComma(this)" />
+                    </div>
+                    <div class="field">
+                        <label>예상 시가 배당률 <span class="unit">(%)</span></label>
+                        <input type="text" id="div-yield" placeholder="0.0" oninput="fmtComma(this)" />
+                    </div>
+                </div>
+                
+                <button class="btn-calc" onclick="calcDiv()">배당금 계산하기</button>
+                <div id="div-alert" class="alert hidden">입력값을 정확히 확인해주세요.</div>
+                
+                <div id="div-result" class="result-section hidden">
+                    <div class="hero-metric">
+                        <div class="hero-label">예상 세후 연 배당금 (15.4% 공제)</div>
+                        <div class="hero-value gain" id="div-annual-post">—</div>
+                        <div class="hero-sub" id="div-monthly-post">—</div>
+                    </div>
+                    
+                    <table class="result-table">
+                        <thead>
+                            <tr>
+                                <th>항목</th>
+                                <th>세전 (Pre-tax)</th>
+                                <th>세후 (Post-tax)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>연간 배당금</td>
+                                <td id="div-annual-pre">—</td>
+                                <td id="div-annual-post-td" class="gain-text" style="color:var(--gain);">—</td>
+                            </tr>
+                            <tr>
+                                <td>월평균 배당금</td>
+                                <td id="div-monthly-pre">—</td>
+                                <td id="div-monthly-post-td" class="gain-text" style="color:var(--gain);">—</td>
+                            </tr>
+                            <tr>
+                                <td>적용 세율</td>
+                                <td colspan="2" style="text-align:right;">15.4% (배당소득세)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ======================= 3. 복리 계산기 ======================= -->
+        <section id="panel-comp" class="panel">
+            <div class="panel-header">
+                <h1 class="panel-title">복리/적립식 계산기</h1>
+                <p class="panel-sub">적립식 투자 시 수익률과 기간에 따른 눈덩이 효과를 확인하세요.</p>
+            </div>
+            
+            <div class="card">
+                <div class="section-label">투자 조건 입력</div>
+                <div class="form-grid">
+                    <div class="field">
+                        <label>초기 투자 원금 <span class="unit">(원)</span></label>
+                        <input type="text" id="comp-init" placeholder="0" oninput="fmtComma(this)" />
+                    </div>
+                    <div class="field">
+                        <label>매월 추가 적립금 <span class="unit">(원)</span></label>
+                        <input type="text" id="comp-monthly" placeholder="0" oninput="fmtComma(this)" />
+                    </div>
+                </div>
+                <div class="form-grid">
+                    <div class="field">
+                        <label>예상 연평균 수익률 <span class="unit">(%)</span></label>
+                        <input type="text" id="comp-rate" placeholder="0.0" oninput="fmtComma(this)" />
+                    </div>
+                    <div class="field">
+                        <label>투자 기간 <span class="unit">(년)</span></label>
+                        <input type="number" id="comp-years" placeholder="0" />
+                    </div>
+                </div>
+
+                <button class="btn-calc" onclick="calcComp()">자산 성장 계산하기</button>
+                <div id="comp-alert" class="alert hidden">모든 값을 정확히 입력해주세요. (0 이상)</div>
+                
+                <div id="comp-result" class="result-section hidden">
+                    <div class="hero-metric">
+                        <div class="hero-label">최종 예상 자산</div>
+                        <div class="hero-value gain" id="comp-final-val">—</div>
+                        <div class="hero-sub" id="comp-profit-label">—</div>
+                    </div>
+                    
+                    <table class="result-table">
+                        <thead>
+                            <tr>
+                                <th>항목</th>
+                                <th>결과 (원)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>원금 총합 (초기 원금 + 누적 적립금)</td>
+                                <td id="comp-total-principal">—</td>
+                            </tr>
+                            <tr class="highlight-row">
+                                <td>복리 순수익금</td>
+                                <td id="comp-total-profit" style="color:var(--gain); font-weight:700;">—</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ======================= 4. 포트폴리오 비중 ======================= -->
+        <section id="panel-port" class="panel">
+            <!-- Implementation goes here -->
+        </section>
+        
+    </main>
+
+    <script>
+        // --- Navigation ---
+        function navTo(id) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('panel-' + id).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        // --- Common Helpers ---
+        function fmtComma(el) {
+            let raw = el.value.replace(/[^0-9.]/g, '');
+            const dotIndex = raw.indexOf('.');
+            if (dotIndex !== -1) {
+                raw = raw.slice(0, dotIndex + 1) + raw.slice(dotIndex + 1).replace(/\./g, '');
+            }
+            if (raw === '') { el.value = ''; return; }
+            let formatted = '';
+            if (raw.includes('.')) {
+                const parts = raw.split('.');
+                const intPart = parts[0] === '' ? '0' : Number(parts[0]).toLocaleString('ko-KR');
+                formatted = intPart + '.' + parts[1];
+            } else {
+                formatted = Number(raw).toLocaleString('ko-KR');
+            }
+            // Keep cursor position logic simple for this version
+            el.value = formatted;
+        }
+
+        function parseNum(id) {
+            return parseFloat(document.getElementById(id).value.replace(/,/g, '')) || 0;
+        }
+
+        function fmtKr(n) {
+            return Math.floor(n).toLocaleString('ko-KR') + '원';
+        }
+
+        // --- 1. 평단가 계산기 ---
+        function calcAvg() {
+            const currPrice = parseNum('avg-curr-price');
+            const currQty = parseNum('avg-curr-qty');
+            const newPrice = parseNum('avg-new-price');
+            const newQty = parseNum('avg-new-qty');
+
+            const alertEl = document.getElementById('avg-alert');
+            const resEl = document.getElementById('avg-result');
+
+            if (!currPrice || !currQty || !newPrice || !newQty) {
+                alertEl.classList.remove('hidden');
+                resEl.classList.add('hidden');
+                return;
+            }
+            alertEl.classList.add('hidden');
+
+            const totalCurrVal = currPrice * currQty;
+            const totalNewVal = newPrice * newQty;
+            const finalTotalInvest = totalCurrVal + totalNewVal;
+            const finalQty = currQty + newQty;
+            
+            const finalAvg = finalTotalInvest / finalQty;
+            
+            const diff = finalAvg - currPrice;
+            const isDown = diff <= 0;
+            const diffPercent = (diff / currPrice) * 100;
+
+            document.getElementById('avg-final-price').textContent = fmtKr(finalAvg);
+            
+            const diffLabel = document.getElementById('avg-diff-label');
+            if (isDown) {
+                diffLabel.textContent = `기존 대비 단가 하락: ${fmtKr(Math.abs(diff))} (-${Math.abs(diffPercent).toFixed(2)}%) ↓`;
+                diffLabel.style.color = 'var(--gain)';
+            } else {
+                diffLabel.textContent = `기존 대비 단가 상승: ${fmtKr(Math.abs(diff))} (+${Math.abs(diffPercent).toFixed(2)}%) ↑`;
+                diffLabel.style.color = 'var(--loss)';
+            }
+
+            document.getElementById('avg-total-invest').textContent = fmtKr(finalTotalInvest);
+            document.getElementById('avg-total-qty').textContent = finalQty.toLocaleString('ko-KR') + '주';
+
+            resEl.classList.remove('hidden');
+        }
+
+        // --- 2. 배당금 계산기 ---
+        function calcDiv() {
+            const principal = parseNum('div-principal');
+            const yieldRate = parseNum('div-yield');
+            
+            const alertEl = document.getElementById('div-alert');
+            const resEl = document.getElementById('div-result');
+
+            if (!principal || !yieldRate || principal < 0 || yieldRate < 0) {
+                alertEl.classList.remove('hidden');
+                resEl.classList.add('hidden');
+                return;
+            }
+            alertEl.classList.add('hidden');
+
+            const annualPre = principal * (yieldRate / 100);
+            const annualPost = annualPre * 0.846; // 15.4% tax
+            const monthlyPre = annualPre / 12;
+            const monthlyPost = annualPost / 12;
+
+            document.getElementById('div-annual-post').textContent = fmtKr(annualPost);
+            document.getElementById('div-monthly-post').textContent = '월평균 세후 약 ' + fmtKr(monthlyPost);
+
+            document.getElementById('div-annual-pre').textContent = fmtKr(annualPre);
+            document.getElementById('div-annual-post-td').textContent = fmtKr(annualPost);
+            document.getElementById('div-monthly-pre').textContent = fmtKr(monthlyPre);
+            document.getElementById('div-monthly-post-td').textContent = fmtKr(monthlyPost);
+
+            resEl.classList.remove('hidden');
+        }
+
+        // --- 3. 복리 계산기 ---
+        function calcComp() {
+            const init = parseNum('comp-init');
+            const monthly = parseNum('comp-monthly');
+            const rate = parseNum('comp-rate');
+            const years = parseFloat(document.getElementById('comp-years').value);
+
+            const alertEl = document.getElementById('comp-alert');
+            const resEl = document.getElementById('comp-result');
+
+            if (init < 0 || monthly < 0 || !years || years <= 0) {
+                alertEl.classList.remove('hidden');
+                resEl.classList.add('hidden');
+                return;
+            }
+            alertEl.classList.add('hidden');
+
+            const months = years * 12;
+            const monthlyRate = (rate / 100) / 12;
+            
+            let currentVal = init;
+            for (let i = 0; i < months; i++) {
+                currentVal += monthly; // Add contribution at start of month
+                currentVal = currentVal * (1 + monthlyRate); // Apply compound interest
+            }
+
+            const totalPrincipal = init + (monthly * months);
+            const totalProfit = currentVal - totalPrincipal;
+            const profitRate = (totalProfit / totalPrincipal) * 100;
+
+            document.getElementById('comp-final-val').textContent = fmtKr(currentVal);
+            document.getElementById('comp-profit-label').textContent = `수익률: +${profitRate.toFixed(2)}%`;
+
+            document.getElementById('comp-total-principal').textContent = fmtKr(totalPrincipal);
+            document.getElementById('comp-total-profit').textContent = '+' + fmtKr(totalProfit);
+
+            resEl.classList.remove('hidden');
+        }
+
+        // --- 4. 포트폴리오 비중 ---
+        const portColors = ['#10b981', '#06b6d4', '#7c3aed', '#a855f7', '#f59e0b', '#ec4899', '#ef4444', '#3b82f6'];
+        
+        function addPortItem() {
+            const container = document.getElementById('port-items');
+            const div = document.createElement('div');
+            div.className = 'port-item';
+            div.style.cssText = 'display:grid; grid-template-columns: 2fr 1.5fr 1fr auto; gap:8px; align-items:center;';
+            div.innerHTML = `
+                <input type="text" class="port-name" placeholder="종목명" oninput="calcPort()" style="width:100%; background:var(--input-bg); border:1px solid var(--glass-border); border-radius:8px; padding:10px; font-family:'Inter'; color:var(--text); outline:none; font-size:14px;" />
+                <input type="text" class="port-price" placeholder="단가" oninput="fmtComma(this); calcPort()" style="width:100%; background:var(--input-bg); border:1px solid var(--glass-border); border-radius:8px; padding:10px; font-family:'Inter'; color:var(--text); outline:none; font-size:14px;" />
+                <input type="text" class="port-qty" placeholder="수량" oninput="fmtComma(this); calcPort()" style="width:100%; background:var(--input-bg); border:1px solid var(--glass-border); border-radius:8px; padding:10px; font-family:'Inter'; color:var(--text); outline:none; font-size:14px;" />
+                <button onclick="this.parentElement.remove(); calcPort()" style="background:transparent; border:none; color:var(--loss); cursor:pointer; padding:8px; font-size:16px;">✕</button>
+            `;
+            container.appendChild(div);
+            calcPort();
+        }
+
+        function calcPort() {
+            const items = document.querySelectorAll('.port-item');
+            let total = 0;
+            let data = [];
+            
+            items.forEach((item, index) => {
+                const name = item.querySelector('.port-name').value || `종목 ${index + 1}`;
+                const priceStr = item.querySelector('.port-price').value.replace(/,/g, '');
+                const qtyStr = item.querySelector('.port-qty').value.replace(/,/g, '');
+                const price = parseFloat(priceStr) || 0;
+                const qty = parseFloat(qtyStr) || 0;
+                const val = price * qty;
+                
+                if (val > 0) {
+                    total += val;
+                    data.push({ name, val });
+                }
+            });
+
+            document.getElementById('port-total-krw').textContent = `총 자산: ${fmtKr(total)}`;
+            
+            const chart = document.getElementById('port-chart');
+            const legend = document.getElementById('port-legend');
+            chart.innerHTML = '';
+            legend.innerHTML = '';
+            
+            if (total === 0) return;
+
+            // Sort by value descending
+            data.sort((a,b) => b.val - a.val);
+
+            data.forEach((d, i) => {
+                const pct = (d.val / total) * 100;
+                const color = portColors[i % portColors.length];
+                
+                // Add to chart
+                const bar = document.createElement('div');
+                bar.style.height = '100%';
+                bar.style.width = pct + '%';
+                bar.style.backgroundColor = color;
+                bar.style.transition = 'width 0.3s ease';
+                bar.title = `${d.name}: ${fmtKr(d.val)} (${pct.toFixed(1)}%)`;
+                chart.appendChild(bar);
+                
+                // Add to legend
+                const leg = document.createElement('div');
+                leg.style.display = 'flex';
+                leg.style.alignItems = 'center';
+                leg.style.gap = '6px';
+                
+                const dot = document.createElement('div');
+                dot.style.width = '12px';
+                dot.style.height = '12px';
+                dot.style.borderRadius = '50%';
+                dot.style.backgroundColor = color;
+                
+                const text = document.createElement('span');
+                text.textContent = `${d.name} ${pct.toFixed(1)}%`;
+                
+                leg.appendChild(dot);
+                leg.appendChild(text);
+                legend.appendChild(leg);
+            });
+        }
+        
+        // Initialize portfolio with one item
+        addPortItem();
+    </script>
+</body>
+</html>
