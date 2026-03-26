@@ -262,12 +262,17 @@
     <aside class="sidebar">
         <div class="logo">Stock Tools</div>
         <nav class="nav">
+            <a href="index.html" class="nav-btn" style="margin-bottom: 20px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border);">
+                <span class="icon">🏠</span>홈으로 돌아가기
+            </a>
             <button class="nav-btn active" onclick="navTo('avg')"><span class="icon">⚖️</span>평단가 계산기</button>
             <button class="nav-btn" onclick="navTo('div')"><span class="icon">💰</span>배당금 계산기</button>
             <button class="nav-btn" onclick="navTo('comp')"><span class="icon">📈</span>복리/적립식 계산기</button>
             <button class="nav-btn" onclick="navTo('port')"><span class="icon">🥧</span>포트폴리오 비중</button>
         </nav>
-        <a href="index.html" class="back-link">← 수익률 계산기 홈으로</a>
+        <div style="margin-top: auto; padding: 12px; font-size: 13px; color: var(--text-muted); text-align: center; opacity: 0.5;">
+            Stock Profit Calculator v1.0
+        </div>
     </aside>
 
     <!-- Main Content -->

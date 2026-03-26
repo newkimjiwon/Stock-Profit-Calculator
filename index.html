@@ -625,6 +625,34 @@
             position: relative;
             z-index: 1;
         }
+        .tools-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 100px;
+            color: var(--text);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            animation: fadeUp 0.6s ease 0.15s both;
+        }
+
+        .tools-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--accent2);
+            transform: translateY(-2px);
+            color: #fff;
+        }
+
+        .tools-link .icon {
+            font-size: 18px;
+        }
     </style>
 </head>
 
@@ -636,6 +664,10 @@
             <div class="header-badge">Stock Calculator</div>
             <h1>주식 수익률 계산기</h1>
             <p class="header-sub">매수가와 매도가를 입력하여 수익률을 계산하세요</p>
+            <a href="tools.html" class="tools-link">
+                <span class="icon">📊</span>
+                평단가·배당금·복리 계산기 더보기
+            </a>
         </header>
 
         <!-- Tabs -->
